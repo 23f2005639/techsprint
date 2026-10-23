@@ -1,0 +1,124 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const M = require('./dist/simulation.js');
+const s = M.createInventory();
+assert.equal(M.reserve(s, 'Aarav', 1).ok, true);
+assert.deepEqual(M.reserve(s, 'Meera', 1), { ok: false, reason: 'stale-version' });
+assert.deepEqual(M.reserve(s, 'Meera', s.version), { ok: false, reason: 'unavailable' });
+assert.equal(s.available, 0);
+assert.equal(s.hold.customer, 'Aarav');
+assert.equal(M.joinWaitlist(s, 'Meera'), 1);
+assert.equal(M.joinWaitlist(s, 'Meera'), 1);
+assert.equal(M.joinWaitlist(s, 'Riya'), 2);
+assert.equal(M.expire(s, M.HOLD_SECONDS - 1), false);
+assert.equal(M.expire(s, M.HOLD_SECONDS), true);
+assert.equal(M.expire(s, M.HOLD_SECONDS + 1), false);
+assert.equal(s.available, 1);
+assert.equal(M.collect(s, 'Aarav', M.HOLD_SECONDS + 1), false);
+const p = M.createInventory();
+M.reserve(p, 'Aarav', 1);
+assert.equal(M.collect(p, 'Meera', 100), false);
+assert.equal(M.collect(p, 'Aarav', M.HOLD_SECONDS - 1), true);
+assert.equal(M.expire(p, M.HOLD_SECONDS), false);
+assert.equal(p.available, 0);
+const late = M.createInventory(); M.reserve(late, 'Aarav', 1);
+assert.equal(M.collect(late, 'Aarav', M.HOLD_SECONDS), false);
+assert.equal(M.mentionSignal(2, 10).label, 'Rising interest');
+assert.equal(M.mentionSignal(2, 2).label, 'Normal activity');
+assert.equal(M.mentionSignal(0, 10).ratio, null);
+// Identical arrival times do not determine the transaction order.
+for (const first of ['Aarav', 'Meera']) {
+  for (const bypass of [false, true]) {
+    const race = M.simultaneousRace(first, bypass);
+    assert.equal(race.arrivals.Aarav.arrival, race.arrivals.Meera.arrival);
+    assert.equal(race.winner, first);
+    assert.equal(Object.values(race.arrivals).filter(r => r.result.ok).length, 1);
+    assert.equal(race.stock.available, 0);
+    assert.equal(race.stock.queue[0], race.loser);
+  }
+}
+const retry = M.createInventory();
+assert.equal(M.atomicBook(retry, 'Aarav', 'req-1').ok, true);
+assert.equal(M.atomicBook(retry, 'Aarav', 'req-1').replay, true);
+assert.equal(M.atomicBook(retry, 'Meera', 'req-1').reason, 'request-id-owner-mismatch');
+assert.equal(retry.available, 0);
+assert.equal(retry.outbox.length, 1);
+M.joinWaitlist(retry, 'Meera');
+assert.equal(M.expire(retry, M.HOLD_SECONDS), true);
+assert.equal(M.expire(retry, M.HOLD_SECONDS), false);
+assert.equal(retry.outbox.filter(e => e.type === 'hold-expired').length, 1);
+assert.equal(M.atomicBook(retry, 'New customer', 'req-new', M.HOLD_SECONDS).reason, 'waitlist-priority');
+assert.equal(M.atomicBook(retry, 'Meera', 'req-2', M.HOLD_SECONDS).ok, true);
+assert.equal(retry.available, 0);
+const gate = M.createGate();
+assert.equal(M.admit(gate, 'r1'), true);
+assert.equal(M.admit(gate, 'r1'), true);
+assert.equal(gate.permits, 0);
+assert.equal(M.admit(gate, 'r2'), false);
+assert.equal(gate.permits, 0);
+assert.deepEqual(M.matchProduct('Need #LimeRunner', [{ sku: 'LR-01', aliases: ['Lime Runner'] }]), ['LR-01']);
+assert.deepEqual(M.matchProduct('Unrelated jacket', [{ sku: 'LR-01', aliases: ['Lime Runner'] }]), []);
+const html = fs.readFileSync(path.join(__dirname, 'dist/index.html'), 'utf8');
+assert.equal((html.match(/<section\b[^>]*class="slide\b[^"]*"/g) || []).length, 7);
+for (const match of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
+  if (/^(https?:|data:)/.test(match[1])) continue;
+  assert.ok(fs.existsSync(path.join(__dirname, 'dist', match[1])), `Missing local asset: ${match[1]}`);
+}
+console.log('PASS: equal-time races in both orders, Redis bypass, retry deduplication, FIFO priority, idempotent expiry/outbox, pickup deadlines, alias matching, seven slides and local assets.');
+console.log('These checks validate the educational model, not production database concurrency.');
+
+const C = require('./dist/crisis-model.js');
+for (const first of ['Aarav', 'Meera']) {
+  const state = C.create();
+  const second = first === 'Aarav' ? 'Meera' : 'Aarav';
+  assert.equal(C.reserve(state, first, 'hoodie', 'L', 1, 'DR-001', 0).ok, true);
+  assert.equal(C.reserve(state, second, 'hoodie', 'L', 1, 'DR-002', 0).ok, false);
+  assert.equal(state.holds.filter(x => x.status === 'held').length, 1);
+  assert.equal(state.stock['hoodie:M'], 2);
+  assert.equal(C.reserve(state, first, 'hoodie', 'L', 1, 'DR-001').replay, true);
+  assert.equal(C.reserve(state, first, 'hoodie', 'M', 1, 'DR-001').reason, 'request-conflict');
+  assert.equal(C.metrics(state).conversion, 25);
+  assert.match(C.reminder(state, 'DR-001', 79200), /within 2 hours/);
+  assert.equal(C.expire(state, 'DR-001', 86399), false);
+  assert.equal(C.expire(state, 'DR-001', 86400), true);
+  assert.equal(C.expire(state, 'DR-001', 86401), false);
+  assert.equal(state.stock['hoodie:L'], 1);
+  assert.equal(C.metrics(state).conversion, 25);
+  assert.equal(C.reminder(state, 'DR-001', 86400), null);
+  assert.equal(C.collect(state, 'DR-001', 86400), false);
+}
+const demand = C.create();
+assert.equal(C.interest(demand, {id:'extra', customer:'New', item:'tee', size:'XL', quantity:3}).ok, true);
+assert.equal(C.demand(demand)['tee:XL'], 3);
+assert.equal(C.interest(demand, {id:'extra', customer:'New', item:'tee', size:'XL', quantity:3}).replay, true);
+assert.equal(demand.stock['tee:XL'], 2);
+for (const quantity of [0, -1, 1.2, 11, NaN]) assert.equal(C.interest(demand, {id:'bad', customer:'Bad', item:'hoodie', size:'M', quantity}).ok, false);
+assert.equal(C.reserve(demand, 'Riya', 'hoodie', 'M', 3, 'large').ok, false);
+assert.equal(C.reserve(demand, 'Riya', 'hoodie', 'M', 2, 'multi').ok, true);
+assert.equal(C.collect(demand, 'multi', 86399), true);
+assert.equal(C.collect(demand, 'multi', 86399), false);
+assert.equal(C.expire(demand, 'multi', 86400), false);
+assert.equal(demand.stock['hoodie:M'], 0);
+assert.equal(C.metrics(demand).uncollected, 0);
+assert.equal((html.match(/class="event-logo"/g)||[]).length, 7);
+assert.ok(html.includes('references/crisis-brief.jpg'));
+console.log('PASS: revised brief model, per-size stock, demand quantities, waitlist conversion, same-time winners, sold/expiry exclusivity, reminder eligibility and seven logo placements.');
+
+const queue = C.create();
+C.reserve(queue, 'Aarav', 'hoodie', 'L', 1, 'q-hold', 0);
+assert.equal(C.enqueue(queue, 'Meera', 'hoodie', 'L'), 1);
+assert.equal(C.enqueue(queue, 'Meera', 'hoodie', 'L'), 1);
+assert.equal(C.remind(queue, 'q-hold', 79199), null);
+assert.match(C.remind(queue, 'q-hold', 79200).text, /Directions: https:/);
+assert.equal(C.remind(queue, 'q-hold', 79201).replay, true);
+assert.equal(queue.events.filter(x => x.type === 'pickup-reminder').length, 1);
+assert.equal(C.expire(queue, 'q-hold', 86400), true);
+assert.equal(C.expire(queue, 'q-hold', 86401), false);
+assert.equal(queue.events.filter(x => x.type === 'priority-notification').length, 1);
+assert.equal(queue.events.find(x => x.type === 'priority-notification').customer, 'Meera');
+assert.equal(C.remind(queue, 'q-hold', 86400), null);
+assert.equal(C.reserve(queue, 'Newcomer', 'hoodie', 'L', 1, 'skip', 86401).reason, 'waitlist-priority');
+assert.equal(C.reserve(queue, 'Meera', 'hoodie', 'L', 1, 'claim', 86401).ok, true);
+assert.deepEqual(queue.queues['hoodie:L'], []);
+console.log('PASS: two-hour reminder eligibility/deduplication/directions and one-time next-customer notification with enforced queue priority.');
