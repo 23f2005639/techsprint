@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS products(id text PRIMARY KEY,name text NOT NULL,price int NOT NULL,photo text NOT NULL,credit text NOT NULL,keywords text NOT NULL);
+CREATE TABLE IF NOT EXISTS variants(id text PRIMARY KEY, product text REFERENCES products(id), size text NOT NULL, UNIQUE(product,size));
+CREATE TABLE IF NOT EXISTS units(code text PRIMARY KEY,variant text REFERENCES variants(id),location text NOT NULL CHECK(location IN ('stockroom','display')),online boolean NOT NULL DEFAULT false,state text NOT NULL DEFAULT 'available' CHECK(state IN ('available','online','fitting','offer','sold')));
+CREATE TABLE IF NOT EXISTS holds(id text PRIMARY KEY,customer text NOT NULL,variant text REFERENCES variants(id),kind text NOT NULL,state text NOT NULL,expires timestamptz NOT NULL,created timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS hold_units(hold text REFERENCES holds(id),unit text REFERENCES units(code),PRIMARY KEY(hold,unit));
+CREATE TABLE IF NOT EXISTS requests(key text PRIMARY KEY,fingerprint text NOT NULL,status int NOT NULL,body jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS demand(id text PRIMARY KEY,customer text NOT NULL,variant text REFERENCES variants(id),quantity int CHECK(quantity BETWEEN 1 AND 10),created timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS waitlist(id bigserial PRIMARY KEY,customer text NOT NULL,variant text REFERENCES variants(id),state text DEFAULT 'waiting',hold text REFERENCES holds(id),created timestamptz DEFAULT now());
+CREATE UNIQUE INDEX IF NOT EXISTS one_waiting ON waitlist(customer,variant) WHERE state='waiting';
+CREATE TABLE IF NOT EXISTS notifications(id text PRIMARY KEY,hold text REFERENCES holds(id),customer text NOT NULL,kind text NOT NULL,body text NOT NULL,delivered boolean DEFAULT false,created timestamptz DEFAULT now(),UNIQUE(hold,kind));
+CREATE TABLE IF NOT EXISTS outbox(id bigserial PRIMARY KEY,kind text NOT NULL,payload jsonb NOT NULL,run_at timestamptz DEFAULT now(),sent boolean DEFAULT false);
+CREATE TABLE IF NOT EXISTS events(id bigserial PRIMARY KEY,kind text NOT NULL,body jsonb NOT NULL,created timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS social(id text PRIMARY KEY,product text REFERENCES products(id),period text NOT NULL,reach int NOT NULL,engagement int NOT NULL,caption text NOT NULL);
+CREATE TABLE IF NOT EXISTS runs(id text PRIMARY KEY,scenario text NOT NULL,requests int NOT NULL,concurrency int NOT NULL,status text DEFAULT 'running',started timestamptz DEFAULT now(),finished timestamptz,final jsonb);
+CREATE TABLE IF NOT EXISTS samples(id bigserial PRIMARY KEY,run text REFERENCES runs(id),status int NOT NULL,ms double precision NOT NULL,created timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS audit(id bigserial PRIMARY KEY,hold text,available_after int NOT NULL CHECK(available_after>=2),created timestamptz DEFAULT now());
+CREATE TABLE IF NOT EXISTS settings(id int PRIMARY KEY,launched boolean DEFAULT false,worker_at timestamptz,paused boolean DEFAULT false,draft text DEFAULT 'Your BIZZNOVATE hold is nearly up. Bring your receipt to the store.');
+INSERT INTO settings(id) VALUES(1) ON CONFLICT DO NOTHING;
+
+ALTER TABLE variants ADD COLUMN IF NOT EXISTS initial_units int NOT NULL DEFAULT 0;
+UPDATE variants v SET initial_units=(SELECT count(*) FROM units u WHERE u.variant=v.id) WHERE initial_units=0;
