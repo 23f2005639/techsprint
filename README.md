@@ -6,6 +6,26 @@ A streetwear reservation system that connects online shoppers with real physical
 
 This repository includes the working local application, an interactive seven-slide presentation, an editable architecture slide and judging guides.
 
+## Screenshots
+
+### Live benchmark dashboard
+
+A completed local race run showing request count, concurrency, observed throughput and client latency. Measurements vary by run.
+
+![Live benchmark dashboard showing a completed 100-request race and measured latency](docs/screenshots/benchmark-dashboard.png)
+
+### Staff console
+
+Physical inventory totals, scanned fitting holds, checkout controls, reminder drafts and synthetic social imports.
+
+![Staff console showing inventory counters, fitting controls and drop management](docs/screenshots/staff-console.png)
+
+### Storefront
+
+The streetwear collection with product photography, size and quantity selection, live availability, reservations and FIFO waitlists.
+
+![Storefront collection showing products, size selectors, availability and reservation buttons](docs/screenshots/storefront.png)
+
 ## Repository contents
 
 | Path | Contents |
