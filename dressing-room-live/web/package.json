@@ -1,0 +1,25 @@
+{
+  "name": "dressing-room-live",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.1.0",
+    "@types/react-dom": "19.1.0",
+    "jsdom": "26.1.0",
+    "prettier": "3.5.3",
+    "typescript": "5.8.3",
+    "vite": "6.3.5",
+    "vitest": "3.2.4"
+  }
+}

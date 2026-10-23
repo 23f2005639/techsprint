@@ -1,0 +1,12 @@
+BIZZNOVATE logo: supplied user asset, preserved from original presentation.
+All photographs illustrate product categories, not exact merchandise or commercial partnerships. Prices are illustrative INR.
+Cloud hoodie: Mediamodifier / Unsplash; https://unsplash.com/photos/kJXGTOY1wLQ (original deck asset).
+Sneakers: original deck asset; original photographer unavailable in source deck. Retained as supplied visual, not a claim of authorship.
+Other locally stored category photographs: Unsplash image CDN, Unsplash License https://unsplash.com/license
+cargo.jpg: https://images.unsplash.com/photo-1473966968600-fa801b869a1a
+tee.jpg: https://images.unsplash.com/photo-1521572163474-6864f9cf17ab
+varsity.jpg (jacket illustration): https://images.unsplash.com/photo-1551028719-00167b16eac5
+bag.jpg (bag illustration): https://images.unsplash.com/photo-1553062407-98eeb64c6a62
+denim.jpg: https://images.unsplash.com/photo-1543076447-215ad9ba6923
+beanie.jpg: https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9
+Downloaded 23 October 2026. No remote image request is needed at runtime.
