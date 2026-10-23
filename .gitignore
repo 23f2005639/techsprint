@@ -1,0 +1,31 @@
+# Machine-local runtime, build and dependency state
+**/node_modules/
+**/__pycache__/
+*.py[cod]
+*.log
+*.pid
+.DS_Store
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+.aws/
+.codex/
+.agents/
+**/.openai/
+
+# Preserved metadata from the former nested presentation repository
+.local-repo-backups/
+
+# Live-app caches and generated output
+dressing-room-live/.runtime/
+dressing-room-live/bin/
+dressing-room-live/results/
+dressing-room-live/web/dist/
+
+# Private presentation authoring and validation output
+dressing-room/.architecture-build/
+
+# dressing-room/dist is the authored offline deck and must remain tracked.
+# Delivery ZIPs and the editable architecture PPTX are intentional artifacts.
