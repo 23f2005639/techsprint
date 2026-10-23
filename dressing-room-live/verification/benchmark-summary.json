@@ -1,0 +1,78 @@
+[
+  {
+    "scenario": "race",
+    "run": "d62d6526e3b59d0cd922ef4db59a5dfa",
+    "requests": 100,
+    "unique_holds": 1,
+    "successful_http": 1,
+    "conflicts": 99,
+    "failures": 0,
+    "rate_limits": 0,
+    "p50_ms": 236.01,
+    "p95_ms": 354.74715000000003,
+    "p99_ms": 363.69733,
+    "rps": 259.75854134399026,
+    "invariants": {
+      "no_duplicate_allocation": true,
+      "protected_floor": true,
+      "inventory_conserved": true
+    }
+  },
+  {
+    "scenario": "five",
+    "run": "aec68e248b8bdf5cd15b4f6096167c64",
+    "requests": 100,
+    "unique_holds": 3,
+    "successful_http": 3,
+    "conflicts": 97,
+    "failures": 0,
+    "rate_limits": 0,
+    "p50_ms": 166.62599999999998,
+    "p95_ms": 297.26495,
+    "p99_ms": 315.27022000000005,
+    "rps": 302.6956564714017,
+    "invariants": {
+      "no_duplicate_allocation": true,
+      "protected_floor": true,
+      "inventory_conserved": true
+    }
+  },
+  {
+    "scenario": "floor",
+    "run": "a352b09eed8007e0b5b22997386676c4",
+    "requests": 100,
+    "unique_holds": 0,
+    "successful_http": 0,
+    "conflicts": 100,
+    "failures": 0,
+    "rate_limits": 0,
+    "p50_ms": 154.55,
+    "p95_ms": 298.0714,
+    "p99_ms": 307.20173,
+    "rps": 305.87783940777814,
+    "invariants": {
+      "no_duplicate_allocation": true,
+      "protected_floor": true,
+      "inventory_conserved": true
+    }
+  },
+  {
+    "scenario": "duplicate",
+    "run": "5060b3e8cdf7af570044c9a217c06379",
+    "requests": 100,
+    "unique_holds": 1,
+    "successful_http": 100,
+    "conflicts": 0,
+    "failures": 0,
+    "rate_limits": 0,
+    "p50_ms": 17.183999999999997,
+    "p95_ms": 22.76955,
+    "p99_ms": 24.699630000000003,
+    "rps": 3718.85722046438,
+    "invariants": {
+      "no_duplicate_allocation": true,
+      "protected_floor": true,
+      "inventory_conserved": true
+    }
+  }
+]
